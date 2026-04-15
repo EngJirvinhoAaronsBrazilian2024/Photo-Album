@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Nunito:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-calligraphy: "Great Vibes", cursive;
+  
+  --color-background: var(--bg);
+  --color-surface: var(--surface);
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+}
+
+:root {
+  /* Vibrant Light Theme */
+  --bg: #fdf8f9; /* Very light pinkish white */
+  --surface: #ffffff;
+  --primary: #ec4899; /* Vibrant Pink */
+  --primary-light: #fce7f3; /* Light Pink */
+  --secondary: #10b981; /* Emerald Green */
+  --accent: #a7f3d0; /* Light Green */
+  --text-main: #1f2937; /* Dark Slate */
+  --text-muted: #6b7280; /* Gray */
+  --border: #f3f4f6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Vibrant Dark Theme */
+    --bg: #0f172a; /* Deep Slate */
+    --surface: #1e293b; /* Dark Slate Surface */
+    --primary: #f472b6; /* Soft Pink */
+    --primary-light: #831843; /* Dark Pink */
+    --secondary: #34d399; /* Soft Green */
+    --accent: #064e3b; /* Dark Green */
+    --text-main: #f8fafc; /* Off-white */
+    --text-muted: #94a3b8; /* Muted Slate */
+    --border: #334155;
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Background image with a colorful, semi-transparent overlay for readability */
+  background-image: linear-gradient(rgba(253, 248, 249, 0.65), rgba(236, 72, 153, 0.2)), url('/background.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-image: linear-gradient(rgba(15, 23, 42, 0.75), rgba(236, 72, 153, 0.25)), url('/background.jpg');
+  }
+}
+
+/* Hide scrollbar for clean UI */
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
