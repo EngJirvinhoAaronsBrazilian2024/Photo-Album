@@ -1,6 +1,8 @@
 {
-  "name": "",
+  "name": "Photo Album",
   "description": "",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": [],
+  "C7": [],
+  "aq": []
 }
