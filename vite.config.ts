@@ -11,6 +11,7 @@ export default defineConfig({
     },
   },
   server: {
+    // DISABLE_HMR is only used in AI Studio dev environments; defaults to HMR enabled.
     hmr: process.env.DISABLE_HMR !== 'true',
   },
 });
