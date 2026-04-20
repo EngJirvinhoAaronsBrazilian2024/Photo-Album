@@ -6,8 +6,8 @@ import { Screen, Album } from '../types';
 import { useAuth } from '../AuthContext';
 import { db, collection, addDoc, serverTimestamp, getDocs, doc, updateDoc, increment } from '../firebase';
 
-const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string;
-const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string;
+const CLOUDINARY_CLOUD_NAME = 'dlxdgmsdo';
+const CLOUDINARY_UPLOAD_PRESET = 'photo_album_unsigned';
 
 interface Props {
   onNavigate: (screen: Screen, params?: { albumId?: string }) => void;
