@@ -62,7 +62,7 @@ export default function App() {
       <Toaster position="top-center" />
       <Navigation currentScreen={currentScreen} onNavigate={handleNavigate} />
       
-      <main className="md:ml-80 p-4 md:p-8 min-h-screen">
+      <main className="md:ml-80 p-4 pb-28 md:p-8 md:pb-8 min-h-screen">
         <div className="max-w-7xl mx-auto">
           {currentScreen === 'dashboard' && <DashboardScreen onNavigate={handleNavigate} />}
           {currentScreen === 'timeline' && <TimelineScreen onNavigate={handleNavigate} />}

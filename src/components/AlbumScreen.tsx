@@ -192,26 +192,26 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
               onClick={() => onNavigate('photo', { photoId: photo.id })}
               className="break-inside-avoid mb-6 cursor-pointer relative group transition-all duration-500 hover:-translate-y-2 hover:scale-[1.02] hover:z-10"
             >
-              <div className="bg-white dark:bg-neutral-800 p-3 pb-12 md:p-4 md:pb-16 shadow-md hover:shadow-2xl border border-gray-200 dark:border-gray-700 relative">
-                <img 
-                  src={photo.url} 
-                  alt={photo.caption || "Photo"} 
-                  className="w-full h-auto object-cover"
-                  referrerPolicy="no-referrer"
-                  loading="lazy"
-                  decoding="async"
-                />
+              <div className="bg-white dark:bg-neutral-800 p-2 pb-10 sm:p-3 sm:pb-12 md:p-4 md:pb-14 shadow-sm hover:shadow-2xl border border-gray-200 dark:border-gray-700 relative rounded-sm">
+                <div className="bg-neutral-100 mb-1 rounded-sm overflow-hidden">
+                  <img 
+                    src={photo.url} 
+                    alt={photo.caption || "Photo"} 
+                    className="w-full h-auto object-cover"
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
                 
                 {/* Subtle photo mount tape detail */}
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-4 bg-white/40 backdrop-blur-sm border border-white/20 shadow-sm rotate-[3deg] z-10 opacity-70 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-10 sm:w-12 h-5 sm:h-6 bg-white/40 backdrop-blur-sm border border-white/20 shadow-sm rotate-[3deg] z-10 opacity-70 group-hover:opacity-100 transition-opacity" />
                 
-                {photo.caption && (
-                  <div className="absolute bottom-3 md:bottom-4 left-4 right-4 text-center">
-                    <p className="text-gray-800 dark:text-gray-200 text-sm md:text-base font-medium line-clamp-1 italic font-serif">
-                      {photo.caption}
-                    </p>
-                  </div>
-                )}
+                <div className="absolute bottom-0 left-0 right-0 h-10 sm:h-12 md:h-14 flex items-center justify-center px-2">
+                  <p className="text-gray-800 dark:text-gray-200 text-xs sm:text-sm font-medium line-clamp-2 italic font-serif text-center break-words leading-tight">
+                    {photo.caption || ""}
+                  </p>
+                </div>
               </div>
             </motion.div>
           ))}

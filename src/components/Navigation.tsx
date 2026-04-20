@@ -21,20 +21,20 @@ export function Navigation({ currentScreen, onNavigate }: Props) {
   return (
     <>
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-surface/80 backdrop-blur-md border-t border-border pb-safe z-50">
-        <div className="flex justify-around items-center h-24">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-md border-t border-border pb-safe z-50">
+        <div className="flex justify-between items-center h-20 px-2 sm:px-6 overflow-x-auto no-scrollbar">
           {navItems.map(({ id, icon: Icon, label }) => {
             const isActive = currentScreen === id || (currentScreen === 'photo' && id === 'album');
             return (
               <button
                 key={id}
                 onClick={() => onNavigate(id)}
-                className={`flex flex-col items-center justify-center w-full h-full space-y-2 transition-colors ${
+                className={`flex flex-col items-center justify-center min-w-[64px] h-full space-y-1 transition-colors px-1 ${
                   isActive ? 'text-primary' : 'text-text-muted hover:text-text-main'
                 }`}
               >
-                <Icon size={32} strokeWidth={isActive ? 2.5 : 2} />
-                <span className="text-sm font-bold">{label}</span>
+                <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                <span className="text-[10px] sm:text-xs font-bold whitespace-nowrap">{label}</span>
               </button>
             );
           })}
