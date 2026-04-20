@@ -27,8 +27,8 @@ In your Vercel project dashboard go to **Settings → Environment Variables** an
 
 | Name | Value |
 |---|---|
-| `VITE_CLOUDINARY_CLOUD_NAME` | `dlxdgmsdq` |
-| `VITE_CLOUDINARY_UPLOAD_PRESET` | `photo_album_unsigned` |
+| `VITE_CLOUDINARY_CLOUD_NAME` | Your cloud name from the [Cloudinary Dashboard](https://cloudinary.com/console) |
+| `VITE_CLOUDINARY_UPLOAD_PRESET` | An **unsigned** upload preset created in Cloudinary → Settings → Upload |
 
 These two variables are required for photo uploads to work. They are intentionally **not** committed to the repository.
 
