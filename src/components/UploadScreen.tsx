@@ -4,7 +4,10 @@ import { toast } from 'react-hot-toast';
 import { UploadCloud, X, Image as ImageIcon } from 'lucide-react';
 import { Screen, Album } from '../types';
 import { useAuth } from '../AuthContext';
-import { db, collection, addDoc, serverTimestamp, getDocs, doc, updateDoc, increment, storage, ref, uploadBytesResumable, getDownloadURL } from '../firebase';
+import { db, collection, addDoc, serverTimestamp, getDocs, doc, updateDoc, increment } from '../firebase';
+
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string;
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string;
 
 interface Props {
   onNavigate: (screen: Screen, params?: { albumId?: string }) => void;
@@ -55,67 +58,73 @@ export function UploadScreen({ onNavigate }: Props) {
     }
   };
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (!file || !user || !selectedAlbumId) return;
     setIsUploading(true);
-    
-    try {
-      // Upload to Firebase Storage
-      const storageRef = ref(storage, `photos/${user.uid}/${Date.now()}_${file.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+    setProgress(0);
 
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgress(Math.round(progress));
-        },
-        (error) => {
-          console.error("Error uploading photo to storage", error);
-          toast.error("Failed to upload photo");
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('folder', 'photo-album');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        setProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+
+    xhr.onload = async () => {
+      if (xhr.status === 200) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          const photoUrl: string = data.secure_url;
+
+          await addDoc(collection(db, 'photos'), {
+            albumId: selectedAlbumId,
+            url: photoUrl,
+            caption,
+            date: new Date().toLocaleDateString(),
+            likes: 0,
+            comments: 0,
+            authorId: user.uid,
+            authorName: user.displayName || 'Anonymous User',
+            authorAvatarUrl: user.photoURL || '',
+            createdAt: serverTimestamp()
+          });
+
+          await updateDoc(doc(db, 'albums', selectedAlbumId), {
+            photoCount: increment(1),
+            coverUrl: photoUrl
+          });
+
+          setProgress(100);
+          toast.success("Photo uploaded successfully!");
+          setTimeout(() => {
+            onNavigate('album', { albumId: selectedAlbumId });
+          }, 500);
+        } catch (err: any) {
+          console.error("Database error after upload:", err);
+          toast.error(`Database Error: ${err.message || 'Failed to save photo record'}`);
           setIsUploading(false);
-        },
-        async () => {
-          try {
-            // Upload completed successfully, now we can get the download URL
-            const photoUrl = await getDownloadURL(uploadTask.snapshot.ref);
-
-            await addDoc(collection(db, 'photos'), {
-              albumId: selectedAlbumId,
-              url: photoUrl,
-              caption,
-              date: new Date().toLocaleDateString(),
-              likes: 0,
-              comments: 0,
-              authorId: user.uid,
-              authorName: user.displayName || 'Anonymous User',
-              authorAvatarUrl: user.photoURL || '',
-              createdAt: serverTimestamp()
-            });
-
-            // Update album photo count and cover
-            await updateDoc(doc(db, 'albums', selectedAlbumId), {
-              photoCount: increment(1),
-              coverUrl: photoUrl
-            });
-
-            setProgress(100);
-            toast.success("Photo uploaded successfully!");
-            setTimeout(() => {
-              onNavigate('album', { albumId: selectedAlbumId });
-            }, 500);
-          } catch (err: any) {
-             console.error("Database error after upload:", err);
-             toast.error(`Database Error: ${err.message || 'Failed to save photo record'}`);
-             setIsUploading(false);
-          }
         }
-      );
-    } catch (error) {
-      console.error("Error uploading photo", error);
+      } else {
+        console.error("Cloudinary upload failed", xhr.responseText);
+        toast.error("Failed to upload photo");
+        setIsUploading(false);
+      }
+    };
+
+    xhr.onerror = () => {
+      console.error("Network error during upload");
       toast.error("Failed to upload photo");
       setIsUploading(false);
-    }
+    };
+
+    xhr.send(formData);
   };
 
   return (
