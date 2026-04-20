@@ -76,33 +76,39 @@ export function UploadScreen({ onNavigate }: Props) {
           setIsUploading(false);
         },
         async () => {
-          // Upload completed successfully, now we can get the download URL
-          const photoUrl = await getDownloadURL(uploadTask.snapshot.ref);
+          try {
+            // Upload completed successfully, now we can get the download URL
+            const photoUrl = await getDownloadURL(uploadTask.snapshot.ref);
 
-          await addDoc(collection(db, 'photos'), {
-            albumId: selectedAlbumId,
-            url: photoUrl,
-            caption,
-            date: new Date().toLocaleDateString(),
-            likes: 0,
-            comments: 0,
-            authorId: user.uid,
-            authorName: user.displayName || 'Anonymous User',
-            authorAvatarUrl: user.photoURL || '',
-            createdAt: serverTimestamp()
-          });
+            await addDoc(collection(db, 'photos'), {
+              albumId: selectedAlbumId,
+              url: photoUrl,
+              caption,
+              date: new Date().toLocaleDateString(),
+              likes: 0,
+              comments: 0,
+              authorId: user.uid,
+              authorName: user.displayName || 'Anonymous User',
+              authorAvatarUrl: user.photoURL || '',
+              createdAt: serverTimestamp()
+            });
 
-          // Update album photo count and cover
-          await updateDoc(doc(db, 'albums', selectedAlbumId), {
-            photoCount: increment(1),
-            coverUrl: photoUrl
-          });
+            // Update album photo count and cover
+            await updateDoc(doc(db, 'albums', selectedAlbumId), {
+              photoCount: increment(1),
+              coverUrl: photoUrl
+            });
 
-          setProgress(100);
-          toast.success("Photo uploaded successfully!");
-          setTimeout(() => {
-            onNavigate('album', { albumId: selectedAlbumId });
-          }, 500);
+            setProgress(100);
+            toast.success("Photo uploaded successfully!");
+            setTimeout(() => {
+              onNavigate('album', { albumId: selectedAlbumId });
+            }, 500);
+          } catch (err: any) {
+             console.error("Database error after upload:", err);
+             toast.error(`Database Error: ${err.message || 'Failed to save photo record'}`);
+             setIsUploading(false);
+          }
         }
       );
     } catch (error) {
