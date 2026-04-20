@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
 import { Screen } from './types';
 import { LoginScreen } from './components/LoginScreen';
 import { DashboardScreen } from './components/DashboardScreen';
@@ -37,18 +38,31 @@ export default function App() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-background text-text-main">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-text-main">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-lg font-medium text-text-muted">Loading your memories...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!user || currentScreen === 'login') {
-    return <LoginScreen onNavigate={handleNavigate} />;
+    return (
+      <>
+        <Toaster position="top-center" />
+        <LoginScreen onNavigate={handleNavigate} />
+      </>
+    );
   }
 
   return (
     <div className="min-h-screen bg-transparent">
+      <Toaster position="top-center" />
       <Navigation currentScreen={currentScreen} onNavigate={handleNavigate} />
       
-      <main className="md:ml-64 p-4 md:p-8 min-h-screen">
+      <main className="md:ml-80 p-4 md:p-8 min-h-screen">
         <div className="max-w-7xl mx-auto">
           {currentScreen === 'dashboard' && <DashboardScreen onNavigate={handleNavigate} />}
           {currentScreen === 'timeline' && <TimelineScreen onNavigate={handleNavigate} />}

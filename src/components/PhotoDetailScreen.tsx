@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { toast } from 'react-hot-toast';
 import { ChevronLeft, Heart, MessageCircle, Share2, MoreHorizontal, Download, ChevronRight, Trash2 } from 'lucide-react';
 import { Screen, Photo, Comment } from '../types';
 import { useAuth } from '../AuthContext';
@@ -127,9 +128,10 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
       await updateDoc(doc(db, 'photos', photoId), {
         comments: increment(1)
       });
+      toast.success("Comment added");
     } catch (error) {
       console.error("Error adding comment", error);
-      alert("Failed to add comment");
+      toast.error("Failed to add comment");
     }
   };
 
@@ -179,11 +181,12 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
       }
       
       setIsDeleteModalOpen(false);
+      toast.success("Photo deleted");
       // Navigate back to album
       onNavigate('album', { albumId: photo.albumId });
     } catch (error) {
       console.error("Error deleting photo", error);
-      alert("Failed to delete photo");
+      toast.error("Failed to delete photo");
     }
   };
 
@@ -307,16 +310,16 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
             <img 
               src={photo.authorAvatarUrl || "https://picsum.photos/seed/user/100/100"} 
               alt={photo.authorName || "User"} 
-              className="w-10 h-10 rounded-full object-cover"
+              className="w-10 h-10 rounded-full object-cover shadow-sm"
               referrerPolicy="no-referrer"
             />
             <div>
-              <p className="font-medium text-text-main">{photo.authorName || "Family Member"}</p>
+              <p className="font-medium text-text-main text-base">{photo.authorName || "Family Member"}</p>
               <p className="text-xs text-text-muted">{photo.date}</p>
             </div>
           </div>
 
-          <p className="text-text-main text-xl font-bold mb-8">{photo.caption}</p>
+          <p className="text-text-main text-xl font-medium mb-6 leading-snug">{photo.caption}</p>
 
           <div className="flex items-center gap-6 border-y border-border py-4 mb-6 relative">
             <div className="relative group flex items-center gap-2">
@@ -335,7 +338,7 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
                   <button 
                     key={emoji}
                     onClick={() => handleReaction(emoji)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium transition-colors ${userArray.includes(user?.uid || '') ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-surface border border-border text-text-main hover:bg-border/50'}`}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-sm font-medium transition-colors ${userArray.includes(user?.uid || '') ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-surface border border-border text-text-main hover:bg-border/50'}`}
                   >
                     <span>{emoji}</span>
                     <span>{userArray.length}</span>
@@ -380,7 +383,7 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
                   <img 
                     src={comment.authorAvatarUrl || "https://picsum.photos/seed/user/100/100"} 
                     alt={comment.authorName} 
-                    className="w-8 h-8 rounded-full object-cover"
+                    className="w-8 h-8 rounded-full object-cover shadow-sm"
                     referrerPolicy="no-referrer"
                   />
                   <div>
@@ -399,7 +402,7 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
             <img 
               src={user?.photoURL || "https://picsum.photos/seed/user/100/100"} 
               alt={user?.displayName || "User"} 
-              className="w-8 h-8 rounded-full object-cover"
+              className="w-8 h-8 rounded-full object-cover shadow-sm"
               referrerPolicy="no-referrer"
             />
             <input 
@@ -407,12 +410,12 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Add a comment..."
-              className="flex-1 bg-surface border border-border rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+              className="flex-1 bg-surface border border-border rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors focus:shadow-sm"
             />
             <button 
               type="submit"
               disabled={!newComment.trim()}
-              className="text-primary font-medium text-sm px-2 disabled:opacity-50"
+              className="text-primary font-medium text-sm px-2 disabled:opacity-50 hover:opacity-80 transition-opacity"
             >
               Post
             </button>

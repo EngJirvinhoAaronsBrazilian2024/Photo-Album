@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { toast } from 'react-hot-toast';
 import { UploadCloud, X, Image as ImageIcon } from 'lucide-react';
 import { Screen, Album } from '../types';
 import { useAuth } from '../AuthContext';
@@ -71,7 +72,7 @@ export function UploadScreen({ onNavigate }: Props) {
         },
         (error) => {
           console.error("Error uploading photo to storage", error);
-          alert("Failed to upload photo");
+          toast.error("Failed to upload photo");
           setIsUploading(false);
         },
         async () => {
@@ -98,6 +99,7 @@ export function UploadScreen({ onNavigate }: Props) {
           });
 
           setProgress(100);
+          toast.success("Photo uploaded successfully!");
           setTimeout(() => {
             onNavigate('album', { albumId: selectedAlbumId });
           }, 500);
@@ -105,21 +107,21 @@ export function UploadScreen({ onNavigate }: Props) {
       );
     } catch (error) {
       console.error("Error uploading photo", error);
-      alert("Failed to upload photo");
+      toast.error("Failed to upload photo");
       setIsUploading(false);
     }
   };
 
   return (
     <div className="pb-24 md:pb-8 max-w-2xl mx-auto">
-      <header className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-serif font-medium tracking-tight text-text-main">Upload Memory</h1>
+      <header className="mb-10 flex items-center justify-between">
+        <h1 className="text-3xl md:text-4xl font-serif font-bold tracking-tight text-text-main">Upload Memory</h1>
         {file && !isUploading && (
           <button 
             onClick={() => setFile(null)}
             className="text-text-muted hover:text-text-main p-2"
           >
-            <X size={20} />
+            <X size={28} />
           </button>
         )}
       </header>
@@ -128,7 +130,7 @@ export function UploadScreen({ onNavigate }: Props) {
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className={`border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center text-center transition-colors ${
+          className={`border-2 border-dashed rounded-3xl p-16 flex flex-col items-center justify-center text-center transition-colors ${
             isDragging ? 'border-primary bg-primary-light/20' : 'border-border bg-surface'
           }`}
           onDragOver={handleDragOver}
@@ -138,10 +140,10 @@ export function UploadScreen({ onNavigate }: Props) {
           <div className="w-20 h-20 rounded-full bg-primary-light/50 flex items-center justify-center text-primary mb-6">
             <UploadCloud size={32} />
           </div>
-          <h3 className="text-xl font-medium text-text-main mb-2">Drag & drop your photos</h3>
-          <p className="text-text-muted mb-8">High quality JPG, PNG, or HEIC files</p>
+          <h3 className="text-xl font-bold text-text-main mb-2">Drag & drop your photos</h3>
+          <p className="text-sm text-text-muted mb-8">High quality JPG, PNG, or HEIC files</p>
           
-          <label className="px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors cursor-pointer shadow-sm">
+          <label className="px-6 py-3 bg-primary text-white text-sm rounded-full font-bold hover:bg-primary/90 transition-colors cursor-pointer shadow-sm">
             Browse Files
             <input 
               type="file" 
@@ -174,23 +176,23 @@ export function UploadScreen({ onNavigate }: Props) {
 
           <div className="space-y-4 mb-8">
             <div>
-              <label className="block text-sm font-medium text-text-main mb-1.5">Caption</label>
+              <label className="block text-sm font-bold text-text-main mb-1.5">Caption</label>
               <textarea 
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 placeholder="Write something about this memory..."
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors resize-none h-24"
+                className="w-full px-4 py-3 text-sm rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors resize-none h-24"
                 disabled={isUploading}
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-text-main mb-1.5">Add to Album</label>
+              <label className="block text-sm font-bold text-text-main mb-1.5">Add to Album</label>
               <select
                 value={selectedAlbumId}
                 onChange={(e) => setSelectedAlbumId(e.target.value)}
                 disabled={isUploading}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors appearance-none"
+                className="w-full px-4 py-3 text-sm rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors appearance-none"
               >
                 {albums.length === 0 && <option value="">No albums available</option>}
                 {albums.map(album => (
@@ -202,7 +204,7 @@ export function UploadScreen({ onNavigate }: Props) {
 
           {isUploading ? (
             <div className="space-y-2">
-              <div className="flex justify-between text-sm font-medium">
+              <div className="flex justify-between text-sm font-bold">
                 <span className="text-text-main">Uploading...</span>
                 <span className="text-primary">{progress}%</span>
               </div>
@@ -218,7 +220,7 @@ export function UploadScreen({ onNavigate }: Props) {
             <button 
               onClick={handleUpload}
               disabled={!selectedAlbumId}
-              className="w-full py-3.5 px-4 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 px-4 bg-primary text-white text-base rounded-xl font-bold hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Upload Photo
             </button>

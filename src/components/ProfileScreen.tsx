@@ -42,7 +42,7 @@ export function ProfileScreen({ onNavigate }: Props) {
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="text-2xl md:text-3xl font-serif font-medium tracking-tight text-text-main mb-1"
+          className="text-2xl md:text-3xl font-serif font-bold tracking-tight text-text-main mb-1"
         >
           {user?.displayName || "Anonymous User"}
         </motion.h1>
@@ -58,12 +58,12 @@ export function ProfileScreen({ onNavigate }: Props) {
 
       <div className="space-y-6">
         <section>
-          <h2 className="text-sm font-medium text-text-muted uppercase tracking-wider mb-3 px-4">Account Settings</h2>
+          <h2 className="text-sm font-bold text-text-muted uppercase tracking-wider mb-3 px-4">Account Settings</h2>
           <div className="bg-surface rounded-2xl border border-border overflow-hidden">
             <button className="w-full flex items-center justify-between p-4 hover:bg-background transition-colors border-b border-border">
               <div className="flex items-center gap-3 text-text-main">
-                <div className="w-8 h-8 rounded-full bg-primary-light/30 text-primary flex items-center justify-center">
-                  <Settings size={18} />
+                <div className="w-10 h-10 rounded-full bg-primary-light/30 text-primary flex items-center justify-center">
+                  <Settings size={20} />
                 </div>
                 <span className="font-medium">Personal Information</span>
               </div>
@@ -71,8 +71,8 @@ export function ProfileScreen({ onNavigate }: Props) {
             </button>
             <button className="w-full flex items-center justify-between p-4 hover:bg-background transition-colors border-b border-border">
               <div className="flex items-center gap-3 text-text-main">
-                <div className="w-8 h-8 rounded-full bg-primary-light/30 text-primary flex items-center justify-center">
-                  <Bell size={18} />
+                <div className="w-10 h-10 rounded-full bg-primary-light/30 text-primary flex items-center justify-center">
+                  <Bell size={20} />
                 </div>
                 <span className="font-medium">Notifications</span>
               </div>
@@ -80,8 +80,8 @@ export function ProfileScreen({ onNavigate }: Props) {
             </button>
             <button className="w-full flex items-center justify-between p-4 hover:bg-background transition-colors">
               <div className="flex items-center gap-3 text-text-main">
-                <div className="w-8 h-8 rounded-full bg-primary-light/30 text-primary flex items-center justify-center">
-                  <Shield size={18} />
+                <div className="w-10 h-10 rounded-full bg-primary-light/30 text-primary flex items-center justify-center">
+                  <Shield size={20} />
                 </div>
                 <span className="font-medium">Privacy & Security</span>
               </div>
@@ -91,12 +91,12 @@ export function ProfileScreen({ onNavigate }: Props) {
         </section>
 
         <section>
-          <h2 className="text-sm font-medium text-text-muted uppercase tracking-wider mb-3 px-4">Support</h2>
+          <h2 className="text-sm font-bold text-text-muted uppercase tracking-wider mb-3 px-4">Support</h2>
           <div className="bg-surface rounded-2xl border border-border overflow-hidden">
             <button className="w-full flex items-center justify-between p-4 hover:bg-background transition-colors">
               <div className="flex items-center gap-3 text-text-main">
-                <div className="w-8 h-8 rounded-full bg-border text-text-muted flex items-center justify-center">
-                  <HelpCircle size={18} />
+                <div className="w-10 h-10 rounded-full bg-border text-text-muted flex items-center justify-center">
+                  <HelpCircle size={20} />
                 </div>
                 <span className="font-medium">Help Center</span>
               </div>
@@ -107,7 +107,7 @@ export function ProfileScreen({ onNavigate }: Props) {
 
         <button 
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 p-4 text-red-500 font-medium hover:bg-red-50 rounded-2xl transition-colors mt-8"
+          className="w-full flex items-center justify-center gap-2 p-4 text-red-500 font-bold hover:bg-red-50 rounded-2xl transition-colors mt-8"
         >
           <LogOut size={20} />
           Log Out

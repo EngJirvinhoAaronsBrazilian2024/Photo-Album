@@ -73,7 +73,7 @@ export function TimelineScreen({ onNavigate }: Props) {
         <div className="space-y-12">
           {Object.entries(groupedPhotos).map(([monthYear, monthPhotos]) => (
             <div key={monthYear}>
-              <h2 className="text-2xl font-bold text-text-main mb-6 sticky top-0 bg-background/80 backdrop-blur-md py-2 z-10">
+              <h2 className="text-2xl font-bold text-text-main mb-6 sticky top-0 bg-background/80 backdrop-blur-md py-2 z-10 transition-all">
                 {monthYear}
               </h2>
               <div className="columns-2 md:columns-3 lg:columns-4 gap-4 md:gap-6">
@@ -84,21 +84,27 @@ export function TimelineScreen({ onNavigate }: Props) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => onNavigate('photo', { photoId: photo.id })}
-                    className="break-inside-avoid mb-4 md:mb-6 rounded-2xl md:rounded-3xl overflow-hidden cursor-pointer relative group bg-surface shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-1.5 border border-border"
+                    className="break-inside-avoid mb-6 cursor-pointer relative group transition-all duration-500 hover:-translate-y-2 hover:scale-[1.02] hover:z-10"
                   >
-                    <img 
-                      src={photo.url} 
-                      alt={photo.caption || "Photo"} 
-                      className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
-                      referrerPolicy="no-referrer"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 md:p-5">
+                    <div className="bg-white dark:bg-neutral-800 p-3 pb-12 md:p-4 md:pb-16 shadow-md hover:shadow-2xl border border-gray-200 dark:border-gray-700 relative">
+                      <img 
+                        src={photo.url} 
+                        alt={photo.caption || "Photo"} 
+                        className="w-full h-auto object-cover"
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      
+                       {/* Subtle photo mount tape detail */}
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-4 bg-white/40 backdrop-blur-sm border border-white/20 shadow-sm -rotate-2 z-10 opacity-70 group-hover:opacity-100 transition-opacity" />
+                      
                       {photo.caption && (
-                        <p className="text-white text-sm md:text-base font-bold line-clamp-2 drop-shadow-md">
-                          {photo.caption}
-                        </p>
+                        <div className="absolute bottom-3 md:bottom-4 left-4 right-4 text-center">
+                          <p className="text-gray-800 dark:text-gray-200 text-sm md:text-base font-medium line-clamp-1 italic font-serif">
+                            {photo.caption}
+                          </p>
+                        </div>
                       )}
                     </div>
                   </motion.div>

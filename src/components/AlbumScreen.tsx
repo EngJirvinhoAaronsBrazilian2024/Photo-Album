@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'react-hot-toast';
 import { Share2, Plus, ChevronLeft, MoreHorizontal, Trash2, X, Play, Pause } from 'lucide-react';
 import { Screen, Album, Photo } from '../types';
 import { useAuth } from '../AuthContext';
@@ -76,10 +77,11 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
     try {
       await deleteDoc(doc(db, 'albums', album.id));
       setIsDeleteModalOpen(false);
+      toast.success('Album deleted');
       onNavigate('dashboard');
     } catch (error) {
       console.error("Error deleting album", error);
-      alert("Failed to delete album");
+      toast.error("Failed to delete album");
     }
   };
 
@@ -133,7 +135,7 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
         <motion.h1 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl md:text-5xl font-bold tracking-tight text-text-main mb-3"
+          className="text-4xl md:text-5xl font-bold tracking-tight text-text-main mb-3"
         >
           {album.title}
         </motion.h1>
@@ -141,7 +143,7 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="flex items-center gap-4 text-text-muted font-medium"
+          className="flex items-center gap-3 text-text-muted text-sm font-medium"
         >
           <span>{album.date}</span>
           <span className="w-1.5 h-1.5 rounded-full bg-border" />
@@ -150,10 +152,10 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
       </div>
 
       {/* Action Bar */}
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex flex-wrap items-center gap-3 mb-10">
         <button 
           onClick={() => onNavigate('upload', { albumId: album.id })}
-          className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-bold hover:bg-primary/90 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+          className="flex items-center gap-2 px-6 py-3 bg-primary text-white text-sm rounded-full font-bold hover:bg-primary/90 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
         >
           <Plus size={20} />
           Add Photos
@@ -166,7 +168,7 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
               setIsSlideshowActive(true);
               setIsPaused(false);
             }}
-            className="flex items-center gap-2 px-6 py-3 bg-surface border border-border text-text-main rounded-full font-bold hover:bg-background transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+            className="flex items-center gap-2 px-6 py-3 bg-surface border-2 border-border text-sm text-text-main rounded-full font-bold hover:bg-background transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
           >
             <Play size={20} className="fill-current" />
             Play Slideshow
@@ -188,21 +190,27 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
               onClick={() => onNavigate('photo', { photoId: photo.id })}
-              className="break-inside-avoid mb-4 md:mb-6 rounded-2xl md:rounded-3xl overflow-hidden cursor-pointer relative group bg-surface shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-1.5 border border-border"
+              className="break-inside-avoid mb-6 cursor-pointer relative group transition-all duration-500 hover:-translate-y-2 hover:scale-[1.02] hover:z-10"
             >
-              <img 
-                src={photo.url} 
-                alt={photo.caption || "Photo"} 
-                className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
-                referrerPolicy="no-referrer"
-                loading="lazy"
-                decoding="async"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 md:p-5">
+              <div className="bg-white dark:bg-neutral-800 p-3 pb-12 md:p-4 md:pb-16 shadow-md hover:shadow-2xl border border-gray-200 dark:border-gray-700 relative">
+                <img 
+                  src={photo.url} 
+                  alt={photo.caption || "Photo"} 
+                  className="w-full h-auto object-cover"
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
+                  decoding="async"
+                />
+                
+                {/* Subtle photo mount tape detail */}
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-4 bg-white/40 backdrop-blur-sm border border-white/20 shadow-sm rotate-[3deg] z-10 opacity-70 group-hover:opacity-100 transition-opacity" />
+                
                 {photo.caption && (
-                  <p className="text-white text-sm md:text-base font-bold line-clamp-2 drop-shadow-md">
-                    {photo.caption}
-                  </p>
+                  <div className="absolute bottom-3 md:bottom-4 left-4 right-4 text-center">
+                    <p className="text-gray-800 dark:text-gray-200 text-sm md:text-base font-medium line-clamp-1 italic font-serif">
+                      {photo.caption}
+                    </p>
+                  </div>
                 )}
               </div>
             </motion.div>

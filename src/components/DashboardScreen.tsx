@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
+import { toast } from 'react-hot-toast';
 import { Plus, CalendarHeart } from 'lucide-react';
 import { Screen, Album, Photo } from '../types';
 import { useAuth } from '../AuthContext';
@@ -17,14 +18,38 @@ export function DashboardScreen({ onNavigate }: Props) {
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newAlbumTitle, setNewAlbumTitle] = useState('');
+  const hasSeededRef = useRef(false);
 
   useEffect(() => {
     if (!user) return;
 
     const albumsQuery = query(collection(db, 'albums'), orderBy('createdAt', 'desc'));
-    const unsubscribeAlbums = onSnapshot(albumsQuery, (snapshot) => {
+    const unsubscribeAlbums = onSnapshot(albumsQuery, async (snapshot) => {
       const albumsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Album));
-      setAlbums(albumsData);
+      
+      // Auto-create initial albums if the database is entirely empty
+      if (albumsData.length === 0 && !hasSeededRef.current) {
+        hasSeededRef.current = true;
+        const defaultNames = ["Aaron", "Edwin", "Phanice", "Dan", "Mercy", "Belinda"];
+        try {
+          const promises = defaultNames.map((name) => 
+            addDoc(collection(db, 'albums'), {
+              title: name,
+              date: new Date().toLocaleDateString(),
+              coverUrl: `https://picsum.photos/seed/${name.toLowerCase()}/600/600`, // Unique stable seed for each album
+              photoCount: 0,
+              ownerId: user.uid,
+              createdAt: serverTimestamp()
+            })
+          );
+          await Promise.all(promises);
+          toast.success("Initial family albums created!");
+        } catch (error) {
+          console.error("Failed to seed baseline albums", error);
+        }
+      } else {
+        setAlbums(albumsData);
+      }
     });
 
     const photosQuery = query(collection(db, 'photos'), orderBy('createdAt', 'desc'), limit(15));
@@ -68,9 +93,10 @@ export function DashboardScreen({ onNavigate }: Props) {
       });
       setIsCreateModalOpen(false);
       setNewAlbumTitle('');
+      toast.success('Album created successfully!');
     } catch (error) {
       console.error("Error creating album", error);
-      alert("Failed to create album");
+      toast.error("Failed to create album");
     }
   };
 
@@ -80,7 +106,7 @@ export function DashboardScreen({ onNavigate }: Props) {
         <motion.h1 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl md:text-4xl font-bold tracking-tight text-text-main mb-2"
+          className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-text-main mb-2"
         >
           Good morning, {user?.displayName?.split(' ')[0] || 'User'}
         </motion.h1>
@@ -112,22 +138,32 @@ export function DashboardScreen({ onNavigate }: Props) {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.1 }}
                 onClick={() => onNavigate('photo', { photoId: photo.id })}
-                className="relative h-64 md:h-80 rounded-3xl overflow-hidden cursor-pointer group shadow-md"
+                className="relative cursor-pointer group transition-all duration-500 hover:-translate-y-2 hover:z-10"
               >
-                <img 
-                  src={photo.url} 
-                  alt={photo.caption || "Memory"} 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6">
-                  <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-white text-xs font-bold mb-2 w-fit">
-                    {Math.floor(Math.random() * 5) + 1} Years Ago
-                  </span>
+                <div className="bg-white dark:bg-neutral-800 p-3 pb-16 shadow-md hover:shadow-2xl border border-gray-200 dark:border-gray-700 relative">
+                  <div className="relative h-48 md:h-64 overflow-hidden">
+                    <img 
+                      src={photo.url} 
+                      alt={photo.caption || "Memory"} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex flex-col justify-end">
+                      <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-white text-xs font-bold mb-1 w-fit">
+                        {Math.floor(Math.random() * 5) + 1} Years Ago
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Subtle photo mount tape detail */}
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-4 bg-white/40 backdrop-blur-sm border border-white/20 shadow-sm -rotate-2 z-10 opacity-70 group-hover:opacity-100 transition-opacity" />
+                  
                   {photo.caption && (
-                    <p className="text-white font-bold line-clamp-2 drop-shadow-md">
-                      {photo.caption}
-                    </p>
+                    <div className="absolute bottom-4 left-4 right-4 text-center">
+                      <p className="text-gray-800 dark:text-gray-200 text-sm md:text-base font-medium line-clamp-2 italic font-serif">
+                        {photo.caption}
+                      </p>
+                    </div>
                   )}
                 </div>
               </motion.div>
@@ -137,10 +173,10 @@ export function DashboardScreen({ onNavigate }: Props) {
       )}
 
       {/* Albums Section */}
-      <section className="mb-12">
+      <section className="mb-16">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-text-main">Family Albums</h2>
-          {albums.length > 0 && <button className="text-primary text-sm font-bold hover:underline">View all</button>}
+          {albums.length > 0 && <button className="text-primary font-bold hover:underline">View all</button>}
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
@@ -149,7 +185,7 @@ export function DashboardScreen({ onNavigate }: Props) {
             whileHover={{ scale: 0.98, y: -4 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsCreateModalOpen(true)}
-            className="aspect-square rounded-3xl border-2 border-dashed border-primary/30 bg-primary/5 flex flex-col items-center justify-center text-primary hover:bg-primary/10 hover:border-primary/50 transition-all shadow-sm hover:shadow-md"
+            className="aspect-[4/5] rounded-[2rem] border-2 border-dashed border-primary/30 bg-primary/5 flex flex-col items-center justify-center text-primary hover:bg-primary/10 hover:border-primary/50 transition-all shadow-sm hover:shadow-md mb-4"
           >
             <div className="w-14 h-14 rounded-full bg-surface shadow-sm flex items-center justify-center mb-3 text-primary">
               <Plus size={28} />
@@ -168,21 +204,31 @@ export function DashboardScreen({ onNavigate }: Props) {
               onClick={() => onNavigate('album', { albumId: album.id })}
               className="group cursor-pointer"
             >
-              <div className="aspect-[4/5] rounded-3xl overflow-hidden mb-4 relative shadow-sm hover:shadow-xl transition-all duration-300 bg-surface border border-border">
-                {album.coverUrl && (
-                  <img 
-                    src={album.coverUrl} 
-                    alt={album.title} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    referrerPolicy="no-referrer"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="aspect-[4/5] mb-4 relative z-0">
+                {/* Physical Photo Album Stack Effect */}
+                <div className="absolute inset-0 bg-white dark:bg-neutral-800 border border-border rounded-[2rem] -rotate-3 scale-95 opacity-50 group-hover:-rotate-6 transition-transform duration-500 origin-bottom-left" />
+                <div className="absolute inset-0 bg-white dark:bg-neutral-800 border border-border rounded-[2rem] rotate-2 scale-95 opacity-50 group-hover:rotate-4 transition-transform duration-500 origin-bottom-right" />
+                
+                <div className="absolute inset-0 rounded-[2rem] overflow-hidden shadow-sm group-hover:shadow-2xl transition-all duration-300 bg-surface border-[6px] border-white dark:border-neutral-800 z-10 flex flex-col">
+                  {album.coverUrl && (
+                    <img 
+                      src={album.coverUrl} 
+                      alt={album.title} 
+                      className="flex-1 w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  )}
+                  {/* Album Spine binding detail */}
+                  <div className="absolute left-0 top-0 bottom-0 w-8 bg-black/10 z-20 border-r border-white/20 shadow-[inset_-2px_0_4px_rgba(0,0,0,0.1)]" />
+                  <div className="absolute left-2 top-4 bottom-4 w-px bg-white/30 z-20" />
+                  
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
+                </div>
               </div>
-              <h3 className="font-bold text-text-main text-lg truncate px-1">{album.title}</h3>
-              <p className="text-sm text-text-muted font-medium px-1">{album.photoCount} photos</p>
+              <h3 className="font-bold text-text-main text-lg lg:text-xl truncate px-2">{album.title}</h3>
+              <p className="text-sm text-text-muted font-medium px-2">{album.photoCount} photos</p>
             </motion.div>
           ))}
         </div>
@@ -196,10 +242,10 @@ export function DashboardScreen({ onNavigate }: Props) {
         
         {recentPhotos.length === 0 && !loading ? (
           <div className="text-center py-16 bg-surface rounded-3xl border border-border shadow-sm">
-            <p className="text-text-muted mb-6 font-medium">No photos yet.</p>
+            <p className="text-text-muted mb-4 font-medium">No photos yet.</p>
             <button 
               onClick={() => onNavigate('upload')}
-              className="px-8 py-3 bg-primary text-white rounded-full font-bold hover:bg-primary/90 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+              className="px-8 py-3 bg-primary text-white text-sm rounded-full font-bold hover:bg-primary/90 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
             >
               Upload First Photo
             </button>
@@ -213,21 +259,28 @@ export function DashboardScreen({ onNavigate }: Props) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 + index * 0.05 }}
                 onClick={() => onNavigate('photo', { photoId: photo.id })}
-                className="break-inside-avoid mb-4 md:mb-6 rounded-2xl md:rounded-3xl overflow-hidden cursor-pointer relative group bg-surface shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-1.5 border border-border"
+                className="break-inside-avoid mb-6 cursor-pointer relative group transition-all duration-500 hover:-translate-y-2 hover:scale-[1.02] hover:z-10"
               >
-                <img 
-                  src={photo.url} 
-                  alt={photo.caption || "Photo"} 
-                  className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 md:p-5">
+                {/* Polaroid/Physical Print Aesthetic */}
+                <div className="bg-white dark:bg-neutral-800 p-3 pb-12 md:p-4 md:pb-16 shadow-md hover:shadow-2xl border border-gray-200 dark:border-gray-700 relative">
+                  <img 
+                    src={photo.url} 
+                    alt={photo.caption || "Photo"} 
+                    className="w-full h-auto object-cover"
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  
+                  {/* Subtle photo mount tape detail */}
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-4 bg-white/40 backdrop-blur-sm border border-white/20 shadow-sm rotate-2 z-10 opacity-70 group-hover:opacity-100 transition-opacity" />
+                  
                   {photo.caption && (
-                    <p className="text-white text-sm md:text-base font-bold line-clamp-2 drop-shadow-md">
-                      {photo.caption}
-                    </p>
+                    <div className="absolute bottom-3 md:bottom-4 left-4 right-4 text-center">
+                      <p className="text-gray-800 dark:text-gray-200 text-sm md:text-base font-medium line-clamp-1 italic font-serif">
+                        {photo.caption}
+                      </p>
+                    </div>
                   )}
                 </div>
               </motion.div>
