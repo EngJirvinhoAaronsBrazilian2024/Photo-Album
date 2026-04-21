@@ -48,10 +48,6 @@ export function LoginScreen({ onNavigate }: Props) {
     }
   };
 
-  const openInNewTab = () => {
-    window.open(window.location.href, '_blank');
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-black">
       {/* Full-screen Background Image with Ken Burns */}
@@ -146,7 +142,7 @@ export function LoginScreen({ onNavigate }: Props) {
                 transition={{ duration: 0.6, delay: 0.5 }}
                 type="button"
                 onClick={handleGoogleSignIn}
-                className="w-full flex items-center justify-center gap-4 py-4 px-6 bg-white border border-white/40 text-neutral-800 rounded-2xl text-lg font-bold hover:bg-neutral-50 hover:shadow-lg transition-all group relative overflow-hidden active:scale-95 mb-4"
+                className="w-full flex items-center justify-center gap-4 py-4 px-6 bg-white border border-white/40 text-neutral-800 rounded-2xl text-lg font-bold hover:bg-neutral-50 hover:shadow-lg transition-all group relative overflow-hidden active:scale-95"
               >
                 {/* Button shimmer effect */}
                 <motion.div 
@@ -177,23 +173,11 @@ export function LoginScreen({ onNavigate }: Props) {
                 <span className="relative z-10">Sign in with Google</span>
               </motion.button>
               
-              <motion.button
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.6 }}
-                type="button"
-                onClick={openInNewTab}
-                className="w-full flex items-center justify-center py-3 px-6 bg-transparent border border-white/40 text-white rounded-2xl text-sm font-medium hover:bg-white/10 transition-colors"
-                title="If sign-in popup fails to open in preview frame, click here to open in a new tab."
-              >
-                Open in New Tab
-              </motion.button>
-              
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.7 }}
-                className="mt-8 text-center pb-2"
+                className="mt-10 text-center pb-2"
               >
                  <p className="text-sm font-medium text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] italic">
                   Securely authenticated via Google.
