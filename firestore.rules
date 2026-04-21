@@ -58,7 +58,7 @@ service cloud.firestore {
              hasRequiredFields(['title', 'date', 'coverUrl', 'photoCount', 'ownerId', 'createdAt']) &&
              isValidString('title', 1, 100) &&
              isValidString('date', 1, 100) &&
-             isValidString('coverUrl', 1, 1000) &&
+             isValidString('coverUrl', 1, 1500000) &&
              request.resource.data.photoCount is number &&
              request.resource.data.photoCount >= 0 &&
              isValidString('ownerId', 1, 128) &&
@@ -70,7 +70,7 @@ service cloud.firestore {
       return hasOnlyAllowedFields(['albumId', 'url', 'caption', 'date', 'timestamp', 'likes', 'comments', 'authorId', 'authorName', 'authorAvatarUrl', 'audioUrl', 'reactions', 'taggedUsers', 'createdAt']) &&
              hasRequiredFields(['albumId', 'url', 'caption', 'date', 'likes', 'comments', 'authorId', 'authorName', 'createdAt']) &&
              isValidString('albumId', 1, 128) &&
-             isValidString('url', 1, 1000) &&
+             isValidString('url', 1, 1500000) &&
              isValidString('caption', 0, 1000) &&
              isValidString('date', 1, 100) &&
              (!( 'timestamp' in request.resource.data ) || request.resource.data.timestamp is number) &&
@@ -81,7 +81,7 @@ service cloud.firestore {
              isValidString('authorId', 1, 128) &&
              isValidString('authorName', 1, 100) &&
              isValidOptionalString('authorAvatarUrl', 0, 1000) &&
-             isValidOptionalString('audioUrl', 0, 1000) &&
+             isValidOptionalString('audioUrl', 0, 1500000) &&
              (!( 'reactions' in request.resource.data ) || request.resource.data.reactions is map) &&
              (!( 'taggedUsers' in request.resource.data ) || request.resource.data.taggedUsers is list) &&
              request.resource.data.createdAt is timestamp;
