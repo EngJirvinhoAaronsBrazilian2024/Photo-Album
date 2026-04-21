@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { Share2, Plus, ChevronLeft, MoreHorizontal, Trash2, X, Play, Pause } from 'lucide-react';
 import { Screen, Album, Photo } from '../types';
 import { useAuth } from '../AuthContext';
-import { db, doc, onSnapshot, collection, query, where, orderBy, deleteDoc } from '../firebase';
+import { db, doc, onSnapshot, collection, query, where, orderBy, deleteDoc, updateDoc, increment } from '../firebase';
 
 interface Props {
   albumId: string | null;
@@ -82,6 +82,29 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
     } catch (error) {
       console.error("Error deleting album", error);
       toast.error("Failed to delete album");
+    }
+  };
+
+  const handleDeletePhoto = async (photo: Photo, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user || user.uid !== photo.authorId) {
+      toast.error('You can only delete your own photos');
+      return;
+    }
+    
+    if (window.confirm("Are you sure you want to delete this photo? This action cannot be undone.")) {
+      try {
+        if (photo.albumId) {
+          await updateDoc(doc(db, 'albums', photo.albumId), {
+            photoCount: increment(-1)
+          });
+        }
+        await deleteDoc(doc(db, 'photos', photo.id));
+        toast.success("Photo deleted successfully");
+      } catch (error) {
+        console.error("Failed to delete photo:", error);
+        toast.error("Failed to delete photo");
+      }
     }
   };
 
@@ -193,7 +216,7 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
               className="break-inside-avoid mb-6 cursor-pointer relative group transition-all duration-500 hover:-translate-y-2 hover:scale-[1.02] hover:z-10"
             >
               <div className="bg-white dark:bg-neutral-800 p-2 pb-10 sm:p-3 sm:pb-12 md:p-4 md:pb-14 shadow-sm hover:shadow-2xl border border-gray-200 dark:border-gray-700 relative rounded-sm">
-                <div className="bg-neutral-100 mb-1 rounded-sm overflow-hidden">
+                <div className="bg-neutral-100 mb-1 rounded-sm overflow-hidden relative">
                   <img 
                     src={photo.url} 
                     alt={photo.caption || "Photo"} 
@@ -202,6 +225,15 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
                     loading="lazy"
                     decoding="async"
                   />
+                  {user?.uid === photo.authorId && (
+                    <button
+                      onClick={(e) => handleDeletePhoto(photo, e)}
+                      className="absolute top-2 right-2 p-2 bg-black/40 hover:bg-red-500/90 backdrop-blur-md rounded-full text-white transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none z-20"
+                      title="Delete photo"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
                 
                 {/* Subtle photo mount tape detail */}

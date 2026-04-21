@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { toast } from 'react-hot-toast';
-import { Plus, CalendarHeart } from 'lucide-react';
+import { Plus, CalendarHeart, Trash2 } from 'lucide-react';
 import { Screen, Album, Photo } from '../types';
 import { useAuth } from '../AuthContext';
-import { db, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, limit, where } from '../firebase';
+import { db, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, limit, where, updateDoc, increment, doc, deleteDoc } from '../firebase';
 
 interface Props {
   onNavigate: (screen: Screen, params?: { albumId?: string; photoId?: string }) => void;
@@ -100,6 +100,29 @@ export function DashboardScreen({ onNavigate }: Props) {
     }
   };
 
+  const handleDeletePhoto = async (photo: Photo, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user || user.uid !== photo.authorId) {
+      toast.error('You can only delete your own photos');
+      return;
+    }
+    
+    if (window.confirm("Are you sure you want to delete this photo? This action cannot be undone.")) {
+      try {
+        if (photo.albumId) {
+          await updateDoc(doc(db, 'albums', photo.albumId), {
+            photoCount: increment(-1)
+          });
+        }
+        await deleteDoc(doc(db, 'photos', photo.id));
+        toast.success("Photo deleted successfully");
+      } catch (error) {
+        console.error("Failed to delete photo:", error);
+        toast.error("Failed to delete photo");
+      }
+    }
+  };
+
   return (
     <div className="pb-24 md:pb-8">
       <header className="mb-10">
@@ -151,6 +174,15 @@ export function DashboardScreen({ onNavigate }: Props) {
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       referrerPolicy="no-referrer"
                     />
+                    {user?.uid === photo.authorId && (
+                      <button
+                        onClick={(e) => handleDeletePhoto(photo, e)}
+                        className="absolute top-2 left-2 p-1.5 bg-black/40 hover:bg-red-500/90 backdrop-blur-md rounded-full text-white transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none z-20"
+                        title="Delete photo"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                     <div className="absolute top-2 right-2">
                       <span className="inline-block px-2 py-1 bg-black/50 backdrop-blur-md rounded-md text-white text-[10px] sm:text-xs font-bold uppercase tracking-wide">
                         {Math.floor(Math.random() * 5) + 1} YRS
@@ -261,7 +293,7 @@ export function DashboardScreen({ onNavigate }: Props) {
               >
                 {/* Polaroid/Physical Print Aesthetic */}
                 <div className="bg-white dark:bg-neutral-800 p-2 pb-10 sm:p-3 sm:pb-12 md:p-4 md:pb-14 shadow-sm hover:shadow-2xl border border-gray-200 dark:border-gray-700 relative rounded-sm">
-                  <div className="bg-neutral-100 mb-1 rounded-sm overflow-hidden">
+                  <div className="bg-neutral-100 mb-1 rounded-sm overflow-hidden relative">
                     <img 
                       src={photo.url} 
                       alt={photo.caption || "Photo"} 
@@ -270,6 +302,15 @@ export function DashboardScreen({ onNavigate }: Props) {
                       loading="lazy"
                       decoding="async"
                     />
+                    {user?.uid === photo.authorId && (
+                      <button
+                        onClick={(e) => handleDeletePhoto(photo, e)}
+                        className="absolute top-2 right-2 p-2 bg-black/40 hover:bg-red-500/90 backdrop-blur-md rounded-full text-white transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none z-20"
+                        title="Delete photo"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                   
                   {/* Subtle photo mount tape detail */}
