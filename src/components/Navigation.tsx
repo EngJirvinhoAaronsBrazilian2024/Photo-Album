@@ -18,12 +18,41 @@ export function Navigation({ currentScreen, onNavigate }: Props) {
     { id: 'profile', icon: User, label: 'Profile' },
   ] as const;
 
+  const bottomNavItems = navItems.filter(i => ['dashboard', 'timeline', 'album', 'upload'].includes(i.id));
+
   return (
     <>
+      {/* Mobile Top Navigation */}
+      <div className="md:hidden fixed top-0 left-0 right-0 bg-surface/90 backdrop-blur-md border-b border-border h-16 z-50 flex items-center justify-between px-4">
+        <div className="flex items-center gap-2 text-text-main font-serif font-bold text-xl">
+           <ImageIcon className="text-primary w-6 h-6" />
+           <span className="tracking-tight">FamilyAlbum</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => onNavigate('notifications')}
+            className={`p-2 rounded-full transition-colors ${currentScreen === 'notifications' ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-border/50'}`}
+          >
+            <Bell size={20} />
+          </button>
+          <button
+            onClick={() => onNavigate('profile')}
+            className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-colors ${currentScreen === 'profile' ? 'border-primary' : 'border-transparent'}`}
+          >
+            <img 
+              src={user?.photoURL || "https://picsum.photos/seed/user/100/100"} 
+              alt="Profile" 
+              className="w-full h-full object-cover" 
+              referrerPolicy="no-referrer"
+            />
+          </button>
+        </div>
+      </div>
+
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-md border-t border-border pb-safe z-50">
-        <div className="flex justify-between items-center h-20 px-2 sm:px-6 overflow-x-auto no-scrollbar">
-          {navItems.map(({ id, icon: Icon, label }) => {
+        <div className="flex justify-around items-center h-20 px-2 sm:px-4">
+          {bottomNavItems.map(({ id, icon: Icon, label }) => {
             const isActive = currentScreen === id || (currentScreen === 'photo' && id === 'album');
             return (
               <button

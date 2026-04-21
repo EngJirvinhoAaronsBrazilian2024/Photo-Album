@@ -4,10 +4,7 @@ import { toast } from 'react-hot-toast';
 import { UploadCloud, X, Image as ImageIcon } from 'lucide-react';
 import { Screen, Album } from '../types';
 import { useAuth } from '../AuthContext';
-import { db, collection, addDoc, serverTimestamp, getDocs, doc, updateDoc, increment } from '../firebase';
-
-const CLOUDINARY_CLOUD_NAME = 'dlxdgmsdo';
-const CLOUDINARY_UPLOAD_PRESET = 'photo_album_unsigned';
+import { db, collection, addDoc, serverTimestamp, getDocs, doc, updateDoc, increment, storage, ref, uploadBytesResumable, getDownloadURL } from '../firebase';
 
 interface Props {
   onNavigate: (screen: Screen, params?: { albumId?: string }) => void;
@@ -58,73 +55,97 @@ export function UploadScreen({ onNavigate }: Props) {
     }
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (!file || !user || !selectedAlbumId) return;
     setIsUploading(true);
-    setProgress(0);
+    setProgress(10);
+    
+    try {
+      // Fallback: Compress and save Base64 directly to database to bypass Storage bucket errors
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        
+        img.onload = async () => {
+          setProgress(40);
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1080;
+          const MAX_HEIGHT = 1080;
+          let width = img.width;
+          let height = img.height;
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('folder', 'photo-album');
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
 
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`);
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
 
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        setProgress(Math.round((event.loaded / event.total) * 100));
-      }
-    };
+          // Compress to medium quality JPEG to ensure it fits in 1MB Firestore limit
+          const base64Url = canvas.toDataURL('image/jpeg', 0.6);
+          setProgress(70);
 
-    xhr.onload = async () => {
-      if (xhr.status === 200) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          const photoUrl: string = data.secure_url;
+          try {
+            await addDoc(collection(db, 'photos'), {
+              albumId: selectedAlbumId,
+              url: base64Url,
+              caption,
+              date: new Date().toLocaleDateString(),
+              likes: 0,
+              comments: 0,
+              authorId: user.uid,
+              authorName: user.displayName || 'Anonymous User',
+              authorAvatarUrl: user.photoURL || '',
+              createdAt: serverTimestamp()
+            });
 
-          await addDoc(collection(db, 'photos'), {
-            albumId: selectedAlbumId,
-            url: photoUrl,
-            caption,
-            date: new Date().toLocaleDateString(),
-            likes: 0,
-            comments: 0,
-            authorId: user.uid,
-            authorName: user.displayName || 'Anonymous User',
-            authorAvatarUrl: user.photoURL || '',
-            createdAt: serverTimestamp()
-          });
+            // Update album photo count and cover
+            await updateDoc(doc(db, 'albums', selectedAlbumId), {
+              photoCount: increment(1),
+              coverUrl: base64Url
+            });
 
-          await updateDoc(doc(db, 'albums', selectedAlbumId), {
-            photoCount: increment(1),
-            coverUrl: photoUrl
-          });
-
-          setProgress(100);
-          toast.success("Photo uploaded successfully!");
-          setTimeout(() => {
-            onNavigate('album', { albumId: selectedAlbumId });
-          }, 500);
-        } catch (err: any) {
-          console.error("Database error after upload:", err);
-          toast.error(`Database Error: ${err.message || 'Failed to save photo record'}`);
+            setProgress(100);
+            toast.success("Photo safely uploaded!");
+            setTimeout(() => {
+              onNavigate('album', { albumId: selectedAlbumId });
+            }, 500);
+          } catch (err: any) {
+             console.error("Database error after upload:", err);
+             toast.error(`Database Error: ${err.message || 'Failed to save photo record'}`);
+             setIsUploading(false);
+          }
+        };
+        
+        img.onerror = () => {
+          toast.error("Failed to read image format.");
           setIsUploading(false);
-        }
-      } else {
-        console.error("Cloudinary upload failed", xhr.responseText);
-        toast.error("Failed to upload photo");
+        };
+      };
+      
+      reader.onerror = () => {
+        toast.error("Failed to load file.");
         setIsUploading(false);
-      }
-    };
+      };
 
-    xhr.onerror = () => {
-      console.error("Network error during upload");
-      toast.error("Failed to upload photo");
+    } catch (error) {
+      console.error("Error processing photo", error);
+      toast.error("Failed to process photo");
       setIsUploading(false);
-    };
-
-    xhr.send(formData);
+    }
   };
 
   return (

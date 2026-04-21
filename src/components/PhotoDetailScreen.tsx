@@ -4,7 +4,8 @@ import { toast } from 'react-hot-toast';
 import { ChevronLeft, Heart, MessageCircle, Share2, MoreHorizontal, Download, ChevronRight, Trash2 } from 'lucide-react';
 import { Screen, Photo, Comment } from '../types';
 import { useAuth } from '../AuthContext';
-import { db, doc, onSnapshot, collection, query, where, orderBy, addDoc, updateDoc, increment, serverTimestamp, deleteDoc } from '../firebase';
+import { db, doc, onSnapshot, collection, query, where, orderBy, addDoc, updateDoc, increment, serverTimestamp, deleteDoc, storage, ref } from '../firebase';
+import { deleteObject } from 'firebase/storage';
 
 interface Props {
   photoId: string | null;
@@ -168,6 +169,17 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
       // Delete photo document
       await deleteDoc(doc(db, 'photos', photoId));
 
+      // Attempt to delete from Storage if it's a Firebase Storage URL
+      if (photo.url.includes('firebasestorage.googleapis.com')) {
+        try {
+          const fileRef = ref(storage, photo.url);
+          await deleteObject(fileRef);
+        } catch (storageError) {
+          console.error("Error deleting file from storage", storageError);
+          // We don't block the UI if storage deletion fails, as the document is already gone
+        }
+      }
+      
       setIsDeleteModalOpen(false);
       toast.success("Photo deleted");
       // Navigate back to album
