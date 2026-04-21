@@ -49,7 +49,7 @@ service cloud.firestore {
              isValidString('uid', 1, 128) &&
              isValidString('name', 1, 100) &&
              isValidEmail(request.resource.data.email) &&
-             isValidOptionalString('avatarUrl', 0, 1000) &&
+             isValidOptionalString('avatarUrl', 0, 1500000) &&
              request.resource.data.createdAt is timestamp;
     }
 
