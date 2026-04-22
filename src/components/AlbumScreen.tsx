@@ -58,14 +58,24 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
 
     const photosQuery = query(
       collection(db, 'photos'), 
-      where('albumId', '==', albumId),
-      orderBy('createdAt', 'desc')
+      where('albumId', '==', albumId)
     );
     
     const unsubscribePhotos = onSnapshot(photosQuery, (snapshot) => {
       const photosData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Photo));
+      
+      // Sort client-side to avoid needing a composite Firebase Index (albumId + createdAt)
+      photosData.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+        return timeB - timeA;
+      });
+
       setPhotos(photosData);
       setLoading(false);
+    }, (error) => {
+       console.error("Photos Fetch Error", error);
+       toast.error("Failed to load photos from this album.");
     });
 
     return () => {
