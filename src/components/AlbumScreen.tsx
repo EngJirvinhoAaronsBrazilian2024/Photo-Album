@@ -110,11 +110,12 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
     
     // Attempt native share first
     try {
-      if (navigator.share && navigator.canShare && navigator.canShare({ url: window.location.href })) {
+      const shareUrl = `${window.location.origin}/?screen=album&albumId=${album.id}`;
+      if (navigator.share && navigator.canShare && navigator.canShare({ url: shareUrl })) {
         await navigator.share({
           title: `Family Album: ${album.title}`,
           text: `Check out our album "${album.title}"!`,
-          url: window.location.href
+          url: shareUrl
         });
         return;
       }
@@ -130,19 +131,21 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
   };
 
   const shareToWhatsApp = () => {
-    const text = `Check out our album "${album?.title}"! ${window.location.origin}`;
+    const shareUrl = `${window.location.origin}/?screen=album&albumId=${album?.id}`;
+    const text = `Check out our album "${album?.title}"! ${shareUrl}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
     setIsShareMenuOpen(false);
   };
 
   const shareToFacebook = () => {
-    const url = window.location.origin;
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+    const shareUrl = `${window.location.origin}/?screen=album&albumId=${album?.id}`;
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
     setIsShareMenuOpen(false);
   };
 
   const shareCopiedLink = () => {
-    navigator.clipboard.writeText(window.location.origin);
+    const shareUrl = `${window.location.origin}/?screen=album&albumId=${album?.id}`;
+    navigator.clipboard.writeText(shareUrl);
     toast.success("Link copied to clipboard");
     setIsShareMenuOpen(false);
   };

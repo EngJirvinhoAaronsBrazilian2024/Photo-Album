@@ -23,12 +23,28 @@ export default function App() {
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) {
+    const params = new URLSearchParams(window.location.search);
+    const screenParam = params.get('screen') as Screen | null;
+    const photoIdParam = params.get('photoId');
+    const albumIdParam = params.get('albumId');
+
+    if (screenParam) {
+      if (albumIdParam) setSelectedAlbumId(albumIdParam);
+      if (photoIdParam) setSelectedPhotoId(photoIdParam);
+      setCurrentScreen(screenParam);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!loading && !user && currentScreen !== 'login') {
       setCurrentScreen('login');
     } else if (!loading && user && currentScreen === 'login') {
-      setCurrentScreen('dashboard');
+      // If we authenticated but URL wanted a specific screen, we should go there
+      const params = new URLSearchParams(window.location.search);
+      const screenParam = params.get('screen') as Screen | null;
+      setCurrentScreen(screenParam || 'dashboard');
     }
-  }, [user, loading, currentScreen]);
+  }, [user, loading]);
 
   const handleNavigate = (screen: Screen, params?: { albumId?: string; photoId?: string }) => {
     if (params?.albumId) setSelectedAlbumId(params.albumId);

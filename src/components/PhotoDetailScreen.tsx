@@ -17,11 +17,12 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [albumPhotos, setAlbumPhotos] = useState<Photo[]>([]);
-  const [isLiked, setIsLiked] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
+
+  const isLiked = photo?.reactions?.['heart']?.includes(user?.uid || '') || false;
 
   useEffect(() => {
     if (!photoId) {
@@ -67,15 +68,29 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
   }, [photoId]);
 
   const handleLike = async () => {
-    if (!photo || !photoId) return;
-    setIsLiked(!isLiked);
+    if (!photo || !photoId || !user) return;
+    
+    const hasLiked = photo.reactions?.['heart']?.includes(user.uid) || false;
+    const newReactions = { ...(photo.reactions || {}) };
+    const heartUsers = newReactions['heart'] || [];
+    
+    if (hasLiked) {
+      newReactions['heart'] = heartUsers.filter(id => id !== user.uid);
+    } else {
+      newReactions['heart'] = [...heartUsers, user.uid];
+    }
+    
+    if (newReactions['heart'].length === 0) {
+      delete newReactions['heart'];
+    }
+
     try {
       await updateDoc(doc(db, 'photos', photoId), {
-        likes: increment(isLiked ? -1 : 1)
+        reactions: newReactions,
+        likes: increment(hasLiked ? -1 : 1)
       });
     } catch (error) {
       console.error("Error updating likes", error);
-      setIsLiked(isLiked); // Revert on failure
     }
   };
 
@@ -196,6 +211,7 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
     
     // Attempt native share first (NATIVE SUPPORT FOR INSTAGRAM/FB/WA Mobile Apps)
     try {
+      const shareUrl = `${window.location.origin}/?screen=photo&photoId=${photoId}&albumId=${photo.albumId}`;
       if (navigator.share && navigator.canShare) {
         // We fetch the image to share it natively
         const response = await fetch(photo.url);
@@ -209,11 +225,11 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
             files: [file]
           });
           return;
-        } else if (navigator.canShare({ url: window.location.href })) {
+        } else if (navigator.canShare({ url: shareUrl })) {
           await navigator.share({
             title: 'Family Album',
             text: photo.caption || 'Look at this memory!',
-            url: window.location.href
+            url: shareUrl
           });
           return;
         }
@@ -231,19 +247,21 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
   };
 
   const shareToWhatsApp = () => {
-    const text = `Look at this memory on our Family Album! ${window.location.origin}`;
+    const shareUrl = `${window.location.origin}/?screen=photo&photoId=${photoId}&albumId=${photo?.albumId}`;
+    const text = `Look at this memory on our Family Album! ${shareUrl}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
     setIsShareMenuOpen(false);
   };
 
   const shareToFacebook = () => {
-    const url = window.location.origin;
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+    const shareUrl = `${window.location.origin}/?screen=photo&photoId=${photoId}&albumId=${photo?.albumId}`;
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
     setIsShareMenuOpen(false);
   };
 
   const shareCopiedLink = () => {
-    navigator.clipboard.writeText(window.location.origin);
+    const shareUrl = `${window.location.origin}/?screen=photo&photoId=${photoId}&albumId=${photo?.albumId}`;
+    navigator.clipboard.writeText(shareUrl);
     toast.success("Link copied to clipboard");
     setIsShareMenuOpen(false);
   };
