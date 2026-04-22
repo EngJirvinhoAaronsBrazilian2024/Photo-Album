@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'react-hot-toast';
-import { Share2, Plus, ChevronLeft, MoreHorizontal, Trash2, X, Play, Pause } from 'lucide-react';
+import { Share2, Plus, ChevronLeft, MoreHorizontal, Trash2, X, Play, Pause, Facebook, Instagram, Link as LinkIcon, MessageCircle } from 'lucide-react';
 import { Screen, Album, Photo } from '../types';
 import { useAuth } from '../AuthContext';
 import { db, doc, onSnapshot, collection, query, where, orderBy, deleteDoc, updateDoc, increment } from '../firebase';
@@ -17,6 +17,7 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const [isSlideshowActive, setIsSlideshowActive] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -85,6 +86,48 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
     }
   };
 
+  const handleShare = async () => {
+    if (!album) return;
+    
+    // Attempt native share first
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare({ url: window.location.href })) {
+        await navigator.share({
+          title: `Family Album: ${album.title}`,
+          text: `Check out our album "${album.title}"!`,
+          url: window.location.href
+        });
+        return;
+      }
+    } catch (e: any) {
+      if (e.name !== 'AbortError') {
+        console.log('Native share failed or unsupported, falling back...', e);
+      } else {
+        return;
+      }
+    }
+
+    setIsShareMenuOpen(!isShareMenuOpen);
+  };
+
+  const shareToWhatsApp = () => {
+    const text = `Check out our album "${album?.title}"! ${window.location.origin}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    setIsShareMenuOpen(false);
+  };
+
+  const shareToFacebook = () => {
+    const url = window.location.origin;
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+    setIsShareMenuOpen(false);
+  };
+
+  const shareCopiedLink = () => {
+    navigator.clipboard.writeText(window.location.origin);
+    toast.success("Link copied to clipboard");
+    setIsShareMenuOpen(false);
+  };
+
   const handleDeletePhoto = async (photo: Photo, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user || user.uid !== photo.authorId) {
@@ -138,16 +181,44 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
         >
           <ChevronLeft size={24} />
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative">
           {isOwner && (
             <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 rounded-full hover:bg-border/50 text-red-500 hover:text-red-400 transition-colors">
               <Trash2 size={20} />
             </button>
           )}
-          <button className="p-2 rounded-full hover:bg-border/50 text-text-muted hover:text-text-main transition-colors">
-            <Share2 size={20} />
-          </button>
-          <button className="p-2 rounded-full hover:bg-border/50 text-text-muted hover:text-text-main transition-colors">
+          
+          <div className="relative">
+            <button onClick={handleShare} className="p-2 rounded-full hover:bg-border/50 text-text-muted hover:text-text-main transition-colors">
+              <Share2 size={20} />
+            </button>
+            
+            {isShareMenuOpen && (
+              <div className="absolute top-full right-0 mt-2 w-48 bg-surface border border-border rounded-xl shadow-xl z-30 overflow-hidden flex flex-col">
+                <button onClick={shareToWhatsApp} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main hover:bg-border/50 transition-colors text-left">
+                  <MessageCircle size={16} className="text-green-500" />
+                  WhatsApp
+                </button>
+                <button onClick={shareToFacebook} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main hover:bg-border/50 transition-colors text-left border-t border-border/50">
+                  <Facebook size={16} className="text-blue-500" />
+                  Facebook
+                </button>
+                <button onClick={() => {
+                  toast.success("To share to Instagram, tap the Share icon on your phone!");
+                  setIsShareMenuOpen(false);
+                }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main hover:bg-border/50 transition-colors text-left border-t border-border/50">
+                  <Instagram size={16} className="text-pink-500" />
+                  Instagram
+                </button>
+                <button onClick={shareCopiedLink} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main hover:bg-border/50 transition-colors text-left border-t border-border/50 bg-primary/5">
+                  <LinkIcon size={16} className="text-text-main" />
+                  Copy Link
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button className="p-2 rounded-full hover:bg-border/50 text-text-muted hover:text-text-main transition-colors hidden">
             <MoreHorizontal size={20} />
           </button>
         </div>

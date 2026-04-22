@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { toast } from 'react-hot-toast';
-import { ChevronLeft, Heart, MessageCircle, Share2, MoreHorizontal, Download, ChevronRight, Trash2 } from 'lucide-react';
+import { ChevronLeft, Heart, MessageCircle, Share2, MoreHorizontal, Download, ChevronRight, Trash2, Facebook, Instagram, Link as LinkIcon, Smartphone } from 'lucide-react';
 import { Screen, Photo, Comment } from '../types';
 import { useAuth } from '../AuthContext';
 import { db, doc, onSnapshot, collection, query, where, orderBy, addDoc, updateDoc, increment, serverTimestamp, deleteDoc, storage, ref } from '../firebase';
@@ -21,6 +21,7 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!photoId) {
@@ -190,6 +191,63 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
     }
   };
 
+  const handleShare = async () => {
+    if (!photo) return;
+    
+    // Attempt native share first (NATIVE SUPPORT FOR INSTAGRAM/FB/WA Mobile Apps)
+    try {
+      if (navigator.share && navigator.canShare) {
+        // We fetch the image to share it natively
+        const response = await fetch(photo.url);
+        const blob = await response.blob();
+        const file = new File([blob], `family-photo-${photo.id}.jpg`, { type: blob.type || 'image/jpeg' });
+        
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: 'Family Album Memory',
+            text: photo.caption || 'Look at this memory!',
+            files: [file]
+          });
+          return;
+        } else if (navigator.canShare({ url: window.location.href })) {
+          await navigator.share({
+            title: 'Family Album',
+            text: photo.caption || 'Look at this memory!',
+            url: window.location.href
+          });
+          return;
+        }
+      }
+    } catch (e: any) {
+      if (e.name !== 'AbortError') {
+         console.log('Native share failed or unsupported, falling back...', e);
+      } else {
+        return; // User cancelled the native share
+      }
+    }
+
+    // Fallback to custom menu
+    setIsShareMenuOpen(!isShareMenuOpen);
+  };
+
+  const shareToWhatsApp = () => {
+    const text = `Look at this memory on our Family Album! ${window.location.origin}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    setIsShareMenuOpen(false);
+  };
+
+  const shareToFacebook = () => {
+    const url = window.location.origin;
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+    setIsShareMenuOpen(false);
+  };
+
+  const shareCopiedLink = () => {
+    navigator.clipboard.writeText(window.location.origin);
+    toast.success("Link copied to clipboard");
+    setIsShareMenuOpen(false);
+  };
+
   const currentIndex = albumPhotos.findIndex(p => p.id === photoId);
   const hasNext = currentIndex > 0;
   const hasPrev = currentIndex < albumPhotos.length - 1;
@@ -240,7 +298,10 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
           <button onClick={handleDownload} className="p-2 rounded-full bg-black/20 text-white backdrop-blur-md">
             <Download size={24} />
           </button>
-          <button className="p-2 rounded-full bg-black/20 text-white backdrop-blur-md">
+          <button onClick={handleShare} className="p-2 rounded-full bg-black/20 text-white backdrop-blur-md">
+            <Share2 size={24} />
+          </button>
+          <button className="p-2 rounded-full bg-black/20 text-white backdrop-blur-md hidden">
             <MoreHorizontal size={24} />
           </button>
         </div>
@@ -367,9 +428,35 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
               <MessageCircle size={24} />
               <span className="font-medium">{photo.comments}</span>
             </div>
-            <button className="flex items-center gap-2 text-text-main hover:text-primary transition-colors ml-auto">
-              <Share2 size={24} />
-            </button>
+            <div className="relative">
+              <button onClick={handleShare} className="flex items-center gap-2 text-text-main hover:text-primary transition-colors ml-auto">
+                <Share2 size={24} />
+              </button>
+              
+              {isShareMenuOpen && (
+                <div className="absolute bottom-full right-0 mb-2 w-48 bg-surface border border-border rounded-xl shadow-xl z-30 overflow-hidden flex flex-col">
+                  <button onClick={shareToWhatsApp} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main hover:bg-border/50 transition-colors text-left">
+                    <MessageCircle size={16} className="text-green-500" />
+                    WhatsApp
+                  </button>
+                  <button onClick={shareToFacebook} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main hover:bg-border/50 transition-colors text-left border-t border-border/50">
+                    <Facebook size={16} className="text-blue-500" />
+                    Facebook
+                  </button>
+                  <button onClick={() => {
+                    toast.success("To share to Instagram, tap the Share icon on your phone!");
+                    setIsShareMenuOpen(false);
+                  }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main hover:bg-border/50 transition-colors text-left border-t border-border/50">
+                    <Instagram size={16} className="text-pink-500" />
+                    Instagram
+                  </button>
+                  <button onClick={shareCopiedLink} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main hover:bg-border/50 transition-colors text-left border-t border-border/50 bg-primary/5">
+                    <LinkIcon size={16} className="text-text-main" />
+                    Copy Link
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Comments Section */}
