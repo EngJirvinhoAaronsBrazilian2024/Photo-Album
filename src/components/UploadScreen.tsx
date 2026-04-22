@@ -24,9 +24,20 @@ export function UploadScreen({ onNavigate }: Props) {
     const fetchAlbums = async () => {
       const snapshot = await getDocs(collection(db, 'albums'));
       const albumsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Album));
-      setAlbums(albumsData);
-      if (albumsData.length > 0) {
-        setSelectedAlbumId(albumsData[0].id);
+      
+      // Deduplicate albums by title so we don't show repetitions
+      const uniqueAlbums = [];
+      const seenTitles = new Set();
+      for (const album of albumsData) {
+        if (!seenTitles.has(album.title.toLowerCase())) {
+          seenTitles.add(album.title.toLowerCase());
+          uniqueAlbums.push(album);
+        }
+      }
+      
+      setAlbums(uniqueAlbums);
+      if (uniqueAlbums.length > 0) {
+        setSelectedAlbumId(uniqueAlbums[0].id);
       }
     };
     fetchAlbums();

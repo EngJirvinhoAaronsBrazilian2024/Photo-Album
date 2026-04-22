@@ -49,7 +49,16 @@ export function DashboardScreen({ onNavigate }: Props) {
           console.error("Failed to seed baseline albums", error);
         }
       } else {
-        setAlbums(albumsData);
+        // Deduplicate albums by title so we don't show repetitions
+        const uniqueAlbums = [];
+        const seenTitles = new Set();
+        for (const album of albumsData) {
+          if (!seenTitles.has(album.title.toLowerCase())) {
+            seenTitles.add(album.title.toLowerCase());
+            uniqueAlbums.push(album);
+          }
+        }
+        setAlbums(uniqueAlbums);
       }
     });
 
