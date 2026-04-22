@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'react-hot-toast';
-import { Share2, Plus, ChevronLeft, MoreHorizontal, Trash2, X, Play, Pause, Facebook, Instagram, Link as LinkIcon, MessageCircle } from 'lucide-react';
+import { Share2, Plus, ChevronLeft, MoreHorizontal, Trash2, X, Play, Pause, Facebook, Instagram, Link as LinkIcon, MessageCircle, Edit2 } from 'lucide-react';
 import { Screen, Album, Photo } from '../types';
 import { useAuth } from '../AuthContext';
 import { db, doc, onSnapshot, collection, query, where, orderBy, deleteDoc, updateDoc, increment } from '../firebase';
@@ -17,6 +17,8 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [newAlbumTitle, setNewAlbumTitle] = useState('');
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const [isSlideshowActive, setIsSlideshowActive] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
@@ -83,6 +85,23 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
     } catch (error) {
       console.error("Error deleting album", error);
       toast.error("Failed to delete album");
+    }
+  };
+
+  const handleRenameAlbum = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!album || !user || album.ownerId !== user.uid || !newAlbumTitle.trim()) return;
+
+    try {
+      await updateDoc(doc(db, 'albums', album.id), {
+        title: newAlbumTitle.trim()
+      });
+      setIsRenameModalOpen(false);
+      setNewAlbumTitle('');
+      toast.success('Album renamed successfully');
+    } catch (error) {
+      console.error("Error renaming album", error);
+      toast.error("Failed to rename album");
     }
   };
 
@@ -183,9 +202,25 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
         </button>
         <div className="flex items-center gap-2 relative">
           {isOwner && (
-            <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 rounded-full hover:bg-border/50 text-red-500 hover:text-red-400 transition-colors">
-              <Trash2 size={20} />
-            </button>
+            <>
+              <button 
+                onClick={() => {
+                  setNewAlbumTitle(album.title);
+                  setIsRenameModalOpen(true);
+                }} 
+                className="p-2 rounded-full hover:bg-border/50 text-text-muted hover:text-text-main transition-colors"
+                title="Rename album"
+              >
+                <Edit2 size={20} />
+              </button>
+              <button 
+                onClick={() => setIsDeleteModalOpen(true)} 
+                className="p-2 rounded-full hover:bg-border/50 text-red-500 hover:text-red-400 transition-colors"
+                title="Delete album"
+              >
+                <Trash2 size={20} />
+              </button>
+            </>
           )}
           
           <div className="relative">
@@ -397,6 +432,45 @@ export function AlbumScreen({ albumId, onNavigate }: Props) {
                 Delete
               </button>
             </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Rename Modal */}
+      {isRenameModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-surface rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl border border-border"
+          >
+            <h3 className="text-2xl font-bold text-text-main mb-2">Rename Album</h3>
+            <form onSubmit={handleRenameAlbum}>
+              <input 
+                type="text" 
+                value={newAlbumTitle}
+                onChange={(e) => setNewAlbumTitle(e.target.value)}
+                placeholder="Album Name"
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors mb-6 mt-4"
+                autoFocus
+              />
+              <div className="flex items-center justify-end gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setIsRenameModalOpen(false)}
+                  className="px-5 py-2.5 rounded-full font-medium text-text-muted hover:bg-border/50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={!newAlbumTitle.trim() || newAlbumTitle.trim() === album?.title}
+                  className="px-6 py-2.5 rounded-full font-bold bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
           </motion.div>
         </div>
       )}
