@@ -39,16 +39,11 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
         if (photoData.albumId) {
           const albumPhotosQuery = query(
             collection(db, 'photos'),
-            where('albumId', '==', photoData.albumId)
+            where('albumId', '==', photoData.albumId),
+            orderBy('createdAt', 'desc')
           );
           onSnapshot(albumPhotosQuery, (snapshot) => {
-            const fetched = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Photo));
-            fetched.sort((a, b) => {
-               const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-               const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-               return timeB - timeA;
-            });
-            setAlbumPhotos(fetched);
+            setAlbumPhotos(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Photo)));
           });
         }
       }

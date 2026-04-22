@@ -72,8 +72,8 @@ export function UploadScreen({ onNavigate }: Props) {
         img.onload = async () => {
           setProgress(40);
           const canvas = document.createElement('canvas');
-          let MAX_WIDTH = 1200;
-          let MAX_HEIGHT = 1200;
+          const MAX_WIDTH = 1080;
+          const MAX_HEIGHT = 1080;
           let width = img.width;
           let height = img.height;
 
@@ -94,26 +94,8 @@ export function UploadScreen({ onNavigate }: Props) {
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
 
-          // Compress to JPEG and dynamically lower quality until it fits comfortably within Firestore's 1MB limit.
-          // Base64 adds ~33% overhead. A 1MB limit = ~1,048,000 bytes. We aim for < 800,000 chars.
-          let quality = 0.8;
-          let base64Url = canvas.toDataURL('image/jpeg', quality);
-
-          while (base64Url.length > 800000 && quality > 0.1) {
-            quality -= 0.15;
-            base64Url = canvas.toDataURL('image/jpeg', quality);
-          }
-          
-          // Fallback: If it's STILL too big, aggressively downscale dimensions
-          if (base64Url.length > 800000) {
-              width *= 0.6;
-              height *= 0.6;
-              canvas.width = width;
-              canvas.height = height;
-              ctx?.drawImage(img, 0, 0, width, height);
-              base64Url = canvas.toDataURL('image/jpeg', 0.5);
-          }
-
+          // Compress to medium quality JPEG to ensure it fits in 1MB Firestore limit
+          const base64Url = canvas.toDataURL('image/jpeg', 0.6);
           setProgress(70);
 
           try {
