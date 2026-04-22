@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { Plus, CalendarHeart, Trash2, Search } from 'lucide-react';
 import { Screen, Album, Photo } from '../types';
 import { useAuth } from '../AuthContext';
-import { db, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, limit, where, updateDoc, increment, doc, deleteDoc } from '../firebase';
+import { db, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, limit, where, updateDoc, increment, doc, deleteDoc, getDocs } from '../firebase';
 
 interface Props {
   onNavigate: (screen: Screen, params?: { albumId?: string; photoId?: string }) => void;
@@ -23,6 +23,55 @@ export function DashboardScreen({ onNavigate }: Props) {
 
   useEffect(() => {
     if (!user) return;
+
+    // Background cleanup task to permanently fix the duplicated albums and lost photos
+    const mergeDuplicateAlbums = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, 'albums'));
+        const albumsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Album));
+        
+        const groups: Record<string, Album[]> = {};
+        for (const a of albumsData) {
+          const k = a.title.trim().toLowerCase();
+          if (!groups[k]) groups[k] = [];
+          groups[k].push(a);
+        }
+        
+        for (const [title, group] of Object.entries(groups)) {
+          if (group.length > 1) {
+            // Sort to ensure the one with the most photos becomes primary
+            group.sort((a, b) => (b.photoCount || 0) - (a.photoCount || 0));
+            const primary = group[0];
+            
+            for (let i = 1; i < group.length; i++) {
+              const duplicate = group[i];
+              
+              // Find all photos for this duplicate
+              const pQuery = query(collection(db, 'photos'), where('albumId', '==', duplicate.id));
+              const pSnap = await getDocs(pQuery);
+              
+              for (const p of pSnap.docs) {
+                 // Migrate photo
+                 await updateDoc(doc(db, 'photos', p.id), { albumId: primary.id });
+                 
+                 // Update primary photo count
+                 await updateDoc(doc(db, 'albums', primary.id), {
+                   photoCount: increment(1)
+                 });
+              }
+              
+              // Delete duplicate album
+              await deleteDoc(doc(db, 'albums', duplicate.id));
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Cleanup error:", err);
+      }
+    };
+    
+    // Run the merge in the background
+    mergeDuplicateAlbums();
 
     const albumsQuery = query(collection(db, 'albums'), orderBy('createdAt', 'desc'));
     const unsubscribeAlbums = onSnapshot(albumsQuery, async (snapshot) => {
