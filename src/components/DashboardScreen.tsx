@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { toast } from 'react-hot-toast';
-import { Plus, CalendarHeart, Trash2 } from 'lucide-react';
+import { Plus, CalendarHeart, Trash2, Search } from 'lucide-react';
 import { Screen, Album, Photo } from '../types';
 import { useAuth } from '../AuthContext';
 import { db, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, limit, where, updateDoc, increment, doc, deleteDoc } from '../firebase';
@@ -18,6 +18,7 @@ export function DashboardScreen({ onNavigate }: Props) {
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newAlbumTitle, setNewAlbumTitle] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const hasSeededRef = useRef(false);
 
   useEffect(() => {
@@ -123,6 +124,10 @@ export function DashboardScreen({ onNavigate }: Props) {
     }
   };
 
+  const filteredAlbums = albums.filter(album => 
+    album.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="pb-24 md:pb-8">
       <header className="mb-10">
@@ -204,9 +209,23 @@ export function DashboardScreen({ onNavigate }: Props) {
 
       {/* Albums Section */}
       <section className="mb-16">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-text-main">Family Albums</h2>
-          {albums.length > 0 && <button className="text-primary font-bold hover:underline">View all</button>}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-text-main">Family Albums</h2>
+          </div>
+          
+          <div className="relative w-full sm:w-64 md:w-80">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={18} className="text-text-muted" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search albums..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-surface border border-border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+            />
+          </div>
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
@@ -224,16 +243,21 @@ export function DashboardScreen({ onNavigate }: Props) {
           </motion.button>
 
           {/* Album Cards */}
-          {albums.slice(0, 7).map((album, index) => (
-            <motion.div
-              key={album.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ y: -6 }}
-              onClick={() => onNavigate('album', { albumId: album.id })}
-              className="group cursor-pointer"
-            >
+          {filteredAlbums.length === 0 && searchQuery !== '' ? (
+            <div className="col-span-2 md:col-span-2 lg:col-span-3 aspect-[4/5] md:aspect-auto flex items-center justify-center text-text-muted">
+              No albums found matching "{searchQuery}"
+            </div>
+          ) : (
+            filteredAlbums.slice(0, searchQuery ? undefined : 7).map((album, index) => (
+              <motion.div
+                key={album.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -6 }}
+                onClick={() => onNavigate('album', { albumId: album.id })}
+                className="group cursor-pointer"
+              >
               <div className="aspect-[4/5] mb-4 relative z-0">
                 {/* Physical Photo Album Stack Effect */}
                 <div className="absolute inset-0 bg-white dark:bg-neutral-800 border border-border rounded-[2rem] -rotate-3 scale-95 opacity-50 group-hover:-rotate-6 transition-transform duration-500 origin-bottom-left" />
@@ -260,7 +284,8 @@ export function DashboardScreen({ onNavigate }: Props) {
               <h3 className="font-bold text-text-main text-lg lg:text-xl truncate px-2">{album.title}</h3>
               <p className="text-sm text-text-muted font-medium px-2">{album.photoCount} photos</p>
             </motion.div>
-          ))}
+            ))
+          )}
         </div>
       </section>
 
