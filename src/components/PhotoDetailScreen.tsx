@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { toast } from 'react-hot-toast';
-import { ChevronLeft, Heart, MessageCircle, Share2, MoreHorizontal, Download, ChevronRight, Trash2, Facebook, Instagram, Link as LinkIcon, Smartphone } from 'lucide-react';
+import { ChevronLeft, Heart, MessageCircle, Share2, MoreHorizontal, Download, ChevronRight, Trash2, Facebook, Instagram, Link as LinkIcon, Copy } from 'lucide-react';
 import { Screen, Photo, Comment } from '../types';
 import { useAuth } from '../AuthContext';
 import { db, doc, onSnapshot, collection, query, where, orderBy, addDoc, updateDoc, increment, serverTimestamp, deleteDoc, storage, ref } from '../firebase';
@@ -266,6 +266,26 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
     setIsShareMenuOpen(false);
   };
 
+  const copyImageToClipboard = async () => {
+    if (!photo) return;
+    try {
+      const response = await fetch(photo.url);
+      const blob = await response.blob();
+      
+      // We must explicitly create a strict mime-type blob for clipboard
+      const imageBlob = new Blob([blob], { type: 'image/jpeg' });
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/jpeg': imageBlob })
+      ]);
+      
+      toast.success("Photo copied! You can now paste it directly into WhatsApp, Facebook, or iMessage.", { duration: 4000 });
+      setIsShareMenuOpen(false);
+    } catch (error) {
+      console.error("Clipboard copy failed", error);
+      toast.error("Failed to copy photo. Try downloading it instead.");
+    }
+  };
+
   const currentIndex = albumPhotos.findIndex(p => p.id === photoId);
   const hasNext = currentIndex > 0;
   const hasPrev = currentIndex < albumPhotos.length - 1;
@@ -453,22 +473,24 @@ export function PhotoDetailScreen({ photoId, onNavigate }: Props) {
               
               {isShareMenuOpen && (
                 <div className="absolute bottom-full right-0 mb-2 w-48 bg-surface border border-border rounded-xl shadow-xl z-30 overflow-hidden flex flex-col">
-                  <button onClick={shareToWhatsApp} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main hover:bg-border/50 transition-colors text-left">
+                  {/* Clipboard direct photo share */}
+                  <button onClick={copyImageToClipboard} className="flex flex-col items-start px-4 py-3 text-sm font-medium text-text-main hover:bg-primary/5 transition-colors text-left group">
+                    <div className="flex items-center gap-3 w-full">
+                      <Copy size={16} className="text-primary group-hover:scale-110 transition-transform" />
+                      <span className="font-bold text-primary">Copy Photo</span>
+                    </div>
+                  </button>
+
+                  {/* Fallback to links */}
+                  <button onClick={shareToWhatsApp} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main hover:bg-border/50 transition-colors text-left border-t border-border/50">
                     <MessageCircle size={16} className="text-green-500" />
-                    WhatsApp
+                    Share Link
                   </button>
                   <button onClick={shareToFacebook} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main hover:bg-border/50 transition-colors text-left border-t border-border/50">
                     <Facebook size={16} className="text-blue-500" />
-                    Facebook
+                    Share Link
                   </button>
-                  <button onClick={() => {
-                    toast.success("To share to Instagram, tap the Share icon on your phone!");
-                    setIsShareMenuOpen(false);
-                  }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main hover:bg-border/50 transition-colors text-left border-t border-border/50">
-                    <Instagram size={16} className="text-pink-500" />
-                    Instagram
-                  </button>
-                  <button onClick={shareCopiedLink} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main hover:bg-border/50 transition-colors text-left border-t border-border/50 bg-primary/5">
+                  <button onClick={shareCopiedLink} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-main hover:bg-border/50 transition-colors text-left border-t border-border/50">
                     <LinkIcon size={16} className="text-text-main" />
                     Copy Link
                   </button>
