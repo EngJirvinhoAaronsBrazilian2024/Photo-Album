@@ -72,9 +72,46 @@ export function UploadScreen({ onNavigate }: Props) {
     setProgress(10);
     
     try {
-      // Fallback: Compress and save Base64 directly to database to bypass Storage bucket errors
+      // Step 1: Prioritize Uploading to Firebase Storage instead of bloating the Database
+      try {
+         const uniqueName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
+         const storagePath = `family_photos/${user.uid}/${uniqueName}`;
+         const storageRef = ref(storage, storagePath);
+         
+         const uploadTask = uploadBytesResumable(storageRef, file);
+         
+         uploadTask.on('state_changed', 
+            (snapshot) => {
+               const p = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 60) + 10;
+               setProgress(p);
+            },
+            (error) => {
+               console.warn("Storage upload failed, attempting fallback:", error);
+               runBase64Fallback();
+            },
+            async () => {
+               // Success
+               setProgress(80);
+               const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+               await savePhotoRecord(downloadUrl);
+            }
+         );
+         return; // We exit early and let the uploadTask finish it
+      } catch (storageErr) {
+         console.warn("Storage initialization failed, falling back to Base64 DB compression...", storageErr);
+         runBase64Fallback();
+      }
+    } catch (error) {
+      console.error("Error processing photo", error);
+      toast.error("Failed to process photo");
+      setIsUploading(false);
+    }
+  };
+
+  const runBase64Fallback = () => {
+      setProgress(20);
       const reader = new FileReader();
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(file as Blob);
       
       reader.onload = (event) => {
         const img = new Image();
@@ -83,8 +120,8 @@ export function UploadScreen({ onNavigate }: Props) {
         img.onload = async () => {
           setProgress(40);
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1080;
-          const MAX_HEIGHT = 1080;
+          let MAX_WIDTH = 800; // Force much smaller size since Storage failed
+          let MAX_HEIGHT = 800;
           let width = img.width;
           let height = img.height;
 
@@ -105,40 +142,10 @@ export function UploadScreen({ onNavigate }: Props) {
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
 
-          // Compress to medium quality JPEG to ensure it fits in 1MB Firestore limit
-          const base64Url = canvas.toDataURL('image/jpeg', 0.6);
+          // Force very high compression to ensure fast loading since we are stuck on DB
+          const base64Url = canvas.toDataURL('image/jpeg', 0.4);
           setProgress(70);
-
-          try {
-            await addDoc(collection(db, 'photos'), {
-              albumId: selectedAlbumId,
-              url: base64Url,
-              caption,
-              date: new Date().toLocaleDateString(),
-              likes: 0,
-              comments: 0,
-              authorId: user.uid,
-              authorName: user.displayName || 'Anonymous User',
-              authorAvatarUrl: user.photoURL || '',
-              createdAt: serverTimestamp()
-            });
-
-            // Update album photo count and cover
-            await updateDoc(doc(db, 'albums', selectedAlbumId), {
-              photoCount: increment(1),
-              coverUrl: base64Url
-            });
-
-            setProgress(100);
-            toast.success("Photo safely uploaded!");
-            setTimeout(() => {
-              onNavigate('album', { albumId: selectedAlbumId });
-            }, 500);
-          } catch (err: any) {
-             console.error("Database error after upload:", err);
-             toast.error(`Database Error: ${err.message || 'Failed to save photo record'}`);
-             setIsUploading(false);
-          }
+          await savePhotoRecord(base64Url);
         };
         
         img.onerror = () => {
@@ -151,11 +158,38 @@ export function UploadScreen({ onNavigate }: Props) {
         toast.error("Failed to load file.");
         setIsUploading(false);
       };
+  };
 
-    } catch (error) {
-      console.error("Error processing photo", error);
-      toast.error("Failed to process photo");
-      setIsUploading(false);
+  const savePhotoRecord = async (urlToSave: string) => {
+    try {
+      await addDoc(collection(db, 'photos'), {
+        albumId: selectedAlbumId,
+        url: urlToSave,
+        caption,
+        date: new Date().toLocaleDateString(),
+        likes: 0,
+        comments: 0,
+        authorId: user?.uid,
+        authorName: user?.displayName || 'Anonymous User',
+        authorAvatarUrl: user?.photoURL || '',
+        createdAt: serverTimestamp()
+      });
+
+      // Update album photo count and cover
+      await updateDoc(doc(db, 'albums', selectedAlbumId), {
+        photoCount: increment(1),
+        coverUrl: urlToSave
+      });
+
+      setProgress(100);
+      toast.success("Photo safely uploaded!");
+      setTimeout(() => {
+        onNavigate('album', { albumId: selectedAlbumId });
+      }, 500);
+    } catch (err: any) {
+       console.error("Database error after upload:", err);
+       toast.error(`Database Error: ${err.message || 'Failed to save photo record'}`);
+       setIsUploading(false);
     }
   };
 

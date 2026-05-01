@@ -24,7 +24,7 @@ export function DashboardScreen({ onNavigate }: Props) {
   useEffect(() => {
     if (!user) return;
 
-    // Background cleanup task to permanently fix the duplicated albums and lost photos
+    // Background cleanup task to physically merge duplicated albums and their lost photos
     const mergeDuplicateAlbums = async () => {
       try {
         const snapshot = await getDocs(collection(db, 'albums'));
@@ -39,30 +39,41 @@ export function DashboardScreen({ onNavigate }: Props) {
         
         for (const [title, group] of Object.entries(groups)) {
           if (group.length > 1) {
-            // Sort to ensure the one with the most photos becomes primary
-            group.sort((a, b) => (b.photoCount || 0) - (a.photoCount || 0));
-            const primary = group[0];
-            
-            for (let i = 1; i < group.length; i++) {
-              const duplicate = group[i];
-              
-              // Find all photos for this duplicate
-              const pQuery = query(collection(db, 'photos'), where('albumId', '==', duplicate.id));
-              const pSnap = await getDocs(pQuery);
-              
-              for (const p of pSnap.docs) {
-                 // Migrate photo
-                 await updateDoc(doc(db, 'photos', p.id), { albumId: primary.id });
+             // We want to keep the primary album (e.g. the oldest one or the one with the most photos)
+             group.sort((a, b) => {
+                 // Sort by photo count first (highest first)
+                 const countA = a.photoCount || 0;
+                 const countB = b.photoCount || 0;
+                 if (countA !== countB) return countB - countA;
                  
-                 // Update primary photo count
-                 await updateDoc(doc(db, 'albums', primary.id), {
-                   photoCount: increment(1)
-                 });
-              }
-              
-              // Delete duplicate album
-              await deleteDoc(doc(db, 'albums', duplicate.id));
-            }
+                 // Fallback to createdAt timestamp (oldest first)
+                 const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+                 const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+                 return timeA - timeB;
+             });
+             
+             const primary = group[0];
+             
+             for (let i = 1; i < group.length; i++) {
+                const duplicate = group[i];
+                
+                // Find all photos that belong to the duplicate album
+                const pQuery = query(collection(db, 'photos'), where('albumId', '==', duplicate.id));
+                const pSnap = await getDocs(pQuery);
+                
+                for (const p of pSnap.docs) {
+                   // Migrate photo to the primary album
+                   await updateDoc(doc(db, 'photos', p.id), { albumId: primary.id });
+                   
+                   // Increase primary photo count
+                   await updateDoc(doc(db, 'albums', primary.id), {
+                     photoCount: increment(1)
+                   });
+                }
+                
+                // Delete duplicate album safely
+                await deleteDoc(doc(db, 'albums', duplicate.id));
+             }
           }
         }
       } catch (err) {
@@ -70,7 +81,7 @@ export function DashboardScreen({ onNavigate }: Props) {
       }
     };
     
-    // Run the merge in the background
+    // Fire and forget
     mergeDuplicateAlbums();
 
     const albumsQuery = query(collection(db, 'albums'), orderBy('createdAt', 'desc'));
